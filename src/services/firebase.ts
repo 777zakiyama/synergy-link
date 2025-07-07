@@ -90,7 +90,6 @@ export const loginUser = async (email: string, password: string) => {
           setupTokenRefreshListener();
         }
       } catch (fcmError) {
-        console.error('FCM setup failed:', fcmError);
       }
       
       if (!userData.profile?.fullName) {
@@ -488,7 +487,6 @@ export const getFCMToken = async (): Promise<string | null> => {
     const token = await messaging().getToken();
     return token;
   } catch (error) {
-    console.error('Error getting FCM token:', error);
     return null;
   }
 };
@@ -514,7 +512,6 @@ export const setupTokenRefreshListener = (): (() => void) => {
     try {
       await saveFCMToken(token);
     } catch (error) {
-      console.error('Error saving refreshed FCM token:', error);
     }
   });
 
