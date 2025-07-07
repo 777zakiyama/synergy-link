@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, Auth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, FirebaseStorage } from 'firebase/storage';
-import { COLLECTIONS, User } from './types';
+import { COLLECTIONS, User, Community } from './types';
 
 export const firebaseConfig = {
   apiKey: "your-api-key",
@@ -331,6 +331,93 @@ export const setupMessageListener = (matchId: string, callback: (messages: any[]
     
     callback(messages);
   });
+};
+
+export const getCommunities = async () => {
+  try {
+    const { collection, getDocs, orderBy, query } = await import('firebase/firestore');
+    
+    const communitiesQuery = query(
+      collection(firestore, COLLECTIONS.COMMUNITIES),
+      orderBy('createdAt', 'desc')
+    );
+    const communitiesSnapshot = await getDocs(communitiesQuery);
+    
+    const communities = communitiesSnapshot.docs.map(docSnapshot => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    })) as (Community & { id: string })[];
+    
+    return { success: true, communities };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const createCommunity = async (name: string, description: string, icon: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { addDoc, collection } = await import('firebase/firestore');
+    
+    const communityData: Omit<Community, 'createdAt'> & { createdAt: any } = {
+      name,
+      description,
+      icon,
+      creatorUid: currentUser.uid,
+      memberUids: [currentUser.uid], // 作成者は自動的にメンバーになる
+      createdAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(collection(firestore, COLLECTIONS.COMMUNITIES), communityData);
+    
+    return { success: true, communityId: docRef.id };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const joinCommunity = async (communityId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { doc: firestoreDoc, updateDoc: updateDocFirestore, arrayUnion } = await import('firebase/firestore');
+    
+    const communityRef = firestoreDoc(firestore, COLLECTIONS.COMMUNITIES, communityId);
+    await updateDocFirestore(communityRef, {
+      memberUids: arrayUnion(currentUser.uid),
+    });
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const leaveCommunity = async (communityId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { doc: firestoreDoc, updateDoc: updateDocFirestore, arrayRemove } = await import('firebase/firestore');
+    
+    const communityRef = firestoreDoc(firestore, COLLECTIONS.COMMUNITIES, communityId);
+    await updateDocFirestore(communityRef, {
+      memberUids: arrayRemove(currentUser.uid),
+    });
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 };
 
 export default firebaseConfig;

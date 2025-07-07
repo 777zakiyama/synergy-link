@@ -1,11 +1,12 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { DiscoverScreen, ChatListScreen } from '../screens';
+import { DiscoverScreen, ChatListScreen, CommunityListScreen } from '../screens';
 
 export type TabParamList = {
   Discover: undefined;
   Messages: undefined;
+  Communities: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -22,6 +23,9 @@ const TabNavigator: React.FC = () => {
             break;
           case 'Messages':
             iconName = 'chat';
+            break;
+          case 'Communities':
+            iconName = 'groups';
             break;
           default:
             iconName = 'help';
@@ -64,6 +68,15 @@ const TabNavigator: React.FC = () => {
           title: 'メッセージ',
           headerShown: true,
           headerTitle: 'メッセージ',
+        }}
+      />
+      <Tab.Screen
+        name="Communities"
+        component={CommunityListScreen}
+        options={{
+          title: 'コミュニティ',
+          headerShown: true,
+          headerTitle: 'コミュニティ',
         }}
       />
     </Tab.Navigator>

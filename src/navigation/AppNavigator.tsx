@@ -10,9 +10,11 @@ import {
   ProfileEditScreen,
   ProfileCompleteScreen,
   ChatScreen,
+  CommunityCreateScreen,
+  CommunityDetailScreen,
 } from '../screens';
 import TabNavigator from './TabNavigator';
-import { User } from '../services/types';
+import { User, Community } from '../services/types';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -24,6 +26,8 @@ export type RootStackParamList = {
   ProfileComplete: undefined;
   MainApp: undefined;
   Chat: { matchId: string; partner: User & { uid: string } };
+  CommunityCreate: undefined;
+  CommunityDetail: { community: Community & { id: string } };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -107,6 +111,22 @@ const AppNavigator: React.FC = () => {
           component={ChatScreen}
           options={({ route }) => ({
             title: route.params?.partner?.profile?.fullName || 'チャット',
+            headerShown: true,
+          })}
+        />
+        <Stack.Screen
+          name="CommunityCreate"
+          component={CommunityCreateScreen}
+          options={{
+            title: 'コミュニティ作成',
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="CommunityDetail"
+          component={CommunityDetailScreen}
+          options={({ route }) => ({
+            title: route.params?.community?.name || 'コミュニティ詳細',
             headerShown: true,
           })}
         />

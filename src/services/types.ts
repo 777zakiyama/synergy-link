@@ -52,13 +52,24 @@ export interface ChatMessage {
   };
 }
 
+export interface Community {
+  name: string; // コミュニティ名
+  description: string; // コミュニティの説明文
+  icon: string; // コミュニティを表す絵文字（例: "💡", "⛳"）
+  creatorUid: string; // 作成者のユーザーID
+  memberUids: string[]; // 参加している全メンバーのユーザーIDの配列
+  createdAt: FirestoreTimestamp; // 作成日時
+}
+
 export const COLLECTIONS = {
   USERS: 'users',
   SWIPES: 'swipes',
   MATCHES: 'matches',
   MESSAGES: 'messages', // サブコレクション: matches/{matchId}/messages
+  COMMUNITIES: 'communities',
 } as const;
 
 export type UserDocument = User & { uid: string };
 export type SwipeDocument = Swipe & { id: string };
 export type MatchDocument = Match & { id: string };
+export type CommunityDocument = Community & { id: string };

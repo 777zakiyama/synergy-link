@@ -8,3 +8,6 @@ export { default as ProfileCompleteScreen } from './ProfileCompleteScreen';
 export { default as DiscoverScreen } from './DiscoverScreen';
 export { default as ChatListScreen } from './ChatListScreen';
 export { default as ChatScreen } from './ChatScreen';
+export { default as CommunityListScreen } from './CommunityListScreen';
+export { default as CommunityCreateScreen } from './CommunityCreateScreen';
+export { default as CommunityDetailScreen } from './CommunityDetailScreen';
