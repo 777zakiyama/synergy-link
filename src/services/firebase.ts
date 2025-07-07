@@ -85,7 +85,7 @@ export const loginUser = async (email: string, password: string) => {
       if (!userData.profile?.fullName) {
         return { success: true, uid: user.uid, redirect: 'ProfileEdit' };
       } else {
-        return { success: true, uid: user.uid, redirect: 'ProfileComplete' };
+        return { success: true, uid: user.uid, redirect: 'MainApp' };
       }
     } else {
       return { success: false, error: 'アカウントの状態が不正です' };
@@ -127,6 +127,64 @@ export const updateUserProfile = async (profileData: any, profileImageUri?: stri
         needs: profileData.needs,
         seeds: profileData.seeds,
       },
+    });
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getDiscoverUsers = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
+    
+    const swipesQuery = query(
+      collection(firestore, COLLECTIONS.SWIPES),
+      where('swiperUid', '==', currentUser.uid)
+    );
+    const swipesSnapshot = await getDocs(swipesQuery);
+    const swipedUserIds = swipesSnapshot.docs.map(docSnap => docSnap.data().swipedOnUid);
+    
+    const usersQuery = query(
+      collection(firestore, COLLECTIONS.USERS),
+      where('status', '==', 'approved')
+    );
+    const usersSnapshot = await getDocs(usersQuery);
+    
+    const users = usersSnapshot.docs
+      .map(docSnap => ({ uid: docSnap.id, ...docSnap.data() } as User & { uid: string }))
+      .filter(user => 
+        user.uid !== currentUser.uid && 
+        !swipedUserIds.includes(user.uid) &&
+        user.profile?.fullName // Only users with complete profiles
+      );
+    
+    return { success: true, users };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const saveSwipeAction = async (swipedOnUid: string, action: 'like' | 'pass') => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { addDoc, collection } = await import('firebase/firestore');
+    
+    await addDoc(collection(firestore, COLLECTIONS.SWIPES), {
+      swiperUid: currentUser.uid,
+      swipedOnUid,
+      action,
+      createdAt: serverTimestamp(),
     });
     
     return { success: true };

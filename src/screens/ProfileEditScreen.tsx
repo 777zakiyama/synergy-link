@@ -98,7 +98,7 @@ const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation }) => 
         Alert.alert('成功', 'プロフィールが保存されました', [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('ProfileComplete'),
+            onPress: () => navigation.navigate('MainApp'),
           },
         ]);
       } else {

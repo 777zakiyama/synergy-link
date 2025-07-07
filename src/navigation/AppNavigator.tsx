@@ -10,6 +10,7 @@ import {
   ProfileEditScreen,
   ProfileCompleteScreen,
 } from '../screens';
+import TabNavigator from './TabNavigator';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   PendingReview: undefined;
   ProfileEdit: undefined;
   ProfileComplete: undefined;
+  MainApp: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -88,6 +90,13 @@ const AppNavigator: React.FC = () => {
           options={{
             title: '設定完了',
             headerLeft: () => null, // Prevent going back from this screen
+          }}
+        />
+        <Stack.Screen
+          name="MainApp"
+          component={TabNavigator}
+          options={{
+            headerShown: false,
           }}
         />
       </Stack.Navigator>

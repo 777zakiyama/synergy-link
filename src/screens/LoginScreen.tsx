@@ -35,8 +35,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           navigation.navigate('PendingReview');
         } else if (result.redirect === 'ProfileEdit') {
           navigation.navigate('ProfileEdit');
-        } else if (result.redirect === 'ProfileComplete') {
-          navigation.navigate('ProfileComplete');
+        } else if (result.redirect === 'MainApp') {
+          navigation.navigate('MainApp');
         }
       } else {
         Alert.alert('ログインエラー', result.error || 'ログインに失敗しました');
