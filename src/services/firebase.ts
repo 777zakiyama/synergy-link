@@ -369,6 +369,8 @@ export const createCommunity = async (name: string, description: string, icon: s
       icon,
       creatorUid: currentUser.uid,
       memberUids: [currentUser.uid], // 作成者は自動的にメンバーになる
+      status: 'proposed',
+      supporterUids: [currentUser.uid], // 作成者は自動的にサポーターになる
       createdAt: serverTimestamp(),
     };
     
@@ -413,6 +415,37 @@ export const leaveCommunity = async (communityId: string) => {
     await updateDocFirestore(communityRef, {
       memberUids: arrayRemove(currentUser.uid),
     });
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const supportCommunity = async (communityId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { doc: firestoreDoc, updateDoc: updateDocFirestore, arrayUnion, getDoc } = await import('firebase/firestore');
+    
+    const communityRef = firestoreDoc(firestore, COLLECTIONS.COMMUNITIES, communityId);
+    
+    await updateDocFirestore(communityRef, {
+      supporterUids: arrayUnion(currentUser.uid),
+    });
+    
+    const communityDoc = await getDoc(communityRef);
+    if (communityDoc.exists()) {
+      const communityData = communityDoc.data() as Community;
+      if (communityData.supporterUids.length >= 20 && communityData.status === 'proposed') {
+        await updateDocFirestore(communityRef, {
+          status: 'official',
+        });
+      }
+    }
     
     return { success: true };
   } catch (error: any) {

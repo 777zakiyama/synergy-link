@@ -58,6 +58,8 @@ export interface Community {
   icon: string; // コミュニティを表す絵文字（例: "💡", "⛳"）
   creatorUid: string; // 作成者のユーザーID
   memberUids: string[]; // 参加している全メンバーのユーザーIDの配列
+  status: 'proposed' | 'official'; // コミュニティの状態
+  supporterUids: string[]; // この提案を支持しているユーザーのID配列
   createdAt: FirestoreTimestamp; // 作成日時
 }
 

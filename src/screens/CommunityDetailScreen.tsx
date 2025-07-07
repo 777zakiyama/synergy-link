@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, ActivityIndicator, Card, Avatar, Chip } from 'react-native-paper';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { joinCommunity, leaveCommunity, auth } from '../services/firebase';
+import { joinCommunity, leaveCommunity, supportCommunity, auth } from '../services/firebase';
 import { Community } from '../services/types';
 
 type CommunityDetailRouteProp = RouteProp<{
@@ -25,6 +25,7 @@ const CommunityDetailScreen: React.FC = () => {
   const currentUser = auth.currentUser;
   const isMember = currentUser && community?.memberUids.includes(currentUser.uid);
   const isCreator = currentUser && community?.creatorUid === currentUser.uid;
+  const isSupporter = currentUser && community?.supporterUids?.includes(currentUser.uid);
 
   const handleJoinCommunity = async () => {
     if (!community) return;
@@ -85,6 +86,29 @@ const CommunityDetailScreen: React.FC = () => {
     );
   };
 
+  const handleSupportCommunity = async () => {
+    if (!community) return;
+
+    setLoading(true);
+    try {
+      const result = await supportCommunity(community.id);
+      if (result.success) {
+        setCommunity(prev => prev ? {
+          ...prev,
+          supporterUids: [...(prev.supporterUids || []), currentUser!.uid]
+        } : null);
+        Alert.alert('成功', 'コミュニティを応援しました！');
+      } else {
+        Alert.alert('エラー', result.error || 'コミュニティの応援に失敗しました');
+      }
+    } catch (error) {
+      console.log('Support community error:', error);
+      Alert.alert('エラー', 'コミュニティの応援中にエラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!community) {
     return (
       <View style={styles.loadingContainer}>
@@ -111,9 +135,20 @@ const CommunityDetailScreen: React.FC = () => {
               {community.description}
             </Text>
             <View style={styles.statsContainer}>
-              <Chip icon="account-group" style={styles.memberChip}>
-                {community.memberUids.length}人のメンバー
-              </Chip>
+              {community.status === 'official' ? (
+                <Chip icon="account-group" style={styles.memberChip}>
+                  {community.memberUids.length}人のメンバー
+                </Chip>
+              ) : (
+                <>
+                  <Chip icon="thumb-up" style={styles.supporterChip}>
+                    サポーター: {community.supporterUids?.length || 0} / 20人
+                  </Chip>
+                  <Chip icon="clock" style={styles.proposedChip}>
+                    提案中
+                  </Chip>
+                </>
+              )}
             </View>
           </View>
         </Card.Content>
@@ -121,40 +156,82 @@ const CommunityDetailScreen: React.FC = () => {
 
       <Card style={styles.actionCard}>
         <Card.Content>
-          {!isMember ? (
-            <Button
-              mode="contained"
-              onPress={handleJoinCommunity}
-              loading={loading}
-              disabled={loading}
-              style={styles.actionButton}
-              icon="account-plus"
-            >
-              コミュニティに参加する
-            </Button>
-          ) : (
-            <View style={styles.memberActions}>
-              <Chip icon="check" style={styles.memberStatus}>
-                参加済み
-              </Chip>
-              {!isCreator && (
-                <Button
-                  mode="outlined"
-                  onPress={handleLeaveCommunity}
-                  loading={loading}
-                  disabled={loading}
-                  style={styles.leaveButton}
-                  textColor="#d32f2f"
-                >
-                  退会する
-                </Button>
-              )}
-              {isCreator && (
-                <Chip icon="crown" style={styles.creatorChip}>
-                  作成者
-                </Chip>
+          {community.status === 'proposed' ? (
+            <View style={styles.proposedActions}>
+              {isCreator ? (
+                <View style={styles.creatorSection}>
+                  <Chip icon="crown" style={styles.creatorChip}>
+                    提案者
+                  </Chip>
+                  <Text variant="bodySmall" style={styles.promotionText}>
+                    20人のサポーターが集まると公式コミュニティになります
+                  </Text>
+                </View>
+              ) : isSupporter ? (
+                <View style={styles.supporterSection}>
+                  <Chip icon="check" style={styles.supportedChip}>
+                    応援済み
+                  </Chip>
+                  <Text variant="bodySmall" style={styles.promotionText}>
+                    20人のサポーターが集まると公式コミュニティになります
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.supportSection}>
+                  <Button
+                    mode="contained"
+                    onPress={handleSupportCommunity}
+                    loading={loading}
+                    disabled={loading}
+                    style={styles.actionButton}
+                    icon="thumb-up"
+                  >
+                    このコミュニティを応援する
+                  </Button>
+                  <Text variant="bodySmall" style={styles.promotionText}>
+                    20人のサポーターが集まると公式コミュニティになります
+                  </Text>
+                </View>
               )}
             </View>
+          ) : (
+            <>
+              {!isMember ? (
+                <Button
+                  mode="contained"
+                  onPress={handleJoinCommunity}
+                  loading={loading}
+                  disabled={loading}
+                  style={styles.actionButton}
+                  icon="account-plus"
+                >
+                  コミュニティに参加する
+                </Button>
+              ) : (
+                <View style={styles.memberActions}>
+                  <Chip icon="check" style={styles.memberStatus}>
+                    参加済み
+                  </Chip>
+                  {!isCreator && (
+                    <Button
+                      mode="outlined"
+                      onPress={handleLeaveCommunity}
+                      loading={loading}
+                      disabled={loading}
+                      style={styles.leaveButton}
+                      textColor="#d32f2f"
+                    >
+                      退会する
+                    </Button>
+                  )}
+                  {isCreator && (
+                    <Chip icon="crown" style={styles.creatorChip}>
+                      作成者
+                    </Chip>
+                  )}
+                </View>
+              )}
+            </>
           )}
         </Card.Content>
       </Card>
@@ -248,6 +325,13 @@ const styles = StyleSheet.create({
   memberChip: {
     backgroundColor: '#e3f2fd',
   },
+  supporterChip: {
+    backgroundColor: '#fff3e0',
+    marginRight: 8,
+  },
+  proposedChip: {
+    backgroundColor: '#ffebee',
+  },
   actionCard: {
     marginBottom: 16,
     borderRadius: 12,
@@ -271,6 +355,31 @@ const styles = StyleSheet.create({
   },
   creatorChip: {
     backgroundColor: '#fff3e0',
+  },
+  proposedActions: {
+    alignItems: 'center',
+  },
+  creatorSection: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  supporterSection: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  supportSection: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  supportedChip: {
+    backgroundColor: '#e8f5e8',
+    marginBottom: 8,
+  },
+  promotionText: {
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
   membersCard: {
     borderRadius: 12,
