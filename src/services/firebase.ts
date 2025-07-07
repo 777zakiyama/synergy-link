@@ -178,7 +178,7 @@ export const saveSwipeAction = async (swipedOnUid: string, action: 'like' | 'pas
       return { success: false, error: 'ユーザーが認証されていません' };
     }
 
-    const { addDoc, collection } = await import('firebase/firestore');
+    const { addDoc, collection, query, where, getDocs } = await import('firebase/firestore');
     
     await addDoc(collection(firestore, COLLECTIONS.SWIPES), {
       swiperUid: currentUser.uid,
@@ -187,7 +187,28 @@ export const saveSwipeAction = async (swipedOnUid: string, action: 'like' | 'pas
       createdAt: serverTimestamp(),
     });
     
-    return { success: true };
+    let isMatch = false;
+    if (action === 'like') {
+      const mutualLikeQuery = query(
+        collection(firestore, COLLECTIONS.SWIPES),
+        where('swiperUid', '==', swipedOnUid),
+        where('swipedOnUid', '==', currentUser.uid),
+        where('action', '==', 'like')
+      );
+      
+      const mutualLikeSnapshot = await getDocs(mutualLikeQuery);
+      
+      if (!mutualLikeSnapshot.empty) {
+        isMatch = true;
+        
+        await addDoc(collection(firestore, COLLECTIONS.MATCHES), {
+          userIds: [currentUser.uid, swipedOnUid],
+          createdAt: serverTimestamp(),
+        });
+      }
+    }
+    
+    return { success: true, isMatch };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

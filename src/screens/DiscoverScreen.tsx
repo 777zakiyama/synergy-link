@@ -3,15 +3,20 @@ import { View, StyleSheet, Alert } from 'react-native';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import Swiper from 'react-native-deck-swiper';
 import ProfileCard from '../components/ProfileCard';
-import { getDiscoverUsers, saveSwipeAction } from '../services/firebase';
+import MatchModal from '../components/MatchModal';
+import { getDiscoverUsers, saveSwipeAction, auth, firestore, getCollectionPath } from '../services/firebase';
 import { User } from '../services/types';
 
 const DiscoverScreen: React.FC = () => {
   const [users, setUsers] = useState<(User & { uid: string })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<User & { uid: string } | null>(null);
+  const [currentUserData, setCurrentUserData] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
+    loadCurrentUserData();
   }, []);
 
   const loadUsers = async () => {
@@ -31,13 +36,36 @@ const DiscoverScreen: React.FC = () => {
     }
   };
 
+  const loadCurrentUserData = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const { doc, getDoc } = await import('firebase/firestore');
+        
+        const userDocRef = doc(firestore, getCollectionPath('USERS'), currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          setCurrentUserData(userDoc.data() as User);
+        }
+      }
+    } catch (error) {
+      console.log('Load current user error:', error);
+    }
+  };
+
   const handleSwipe = async (cardIndex: number, action: 'like' | 'pass') => {
     const user = users[cardIndex];
     if (!user) return;
 
     try {
       const result = await saveSwipeAction(user.uid, action);
-      if (!result.success) {
+      if (result.success) {
+        if (result.isMatch && action === 'like') {
+          setMatchedUser(user);
+          setShowMatchModal(true);
+        }
+      } else {
         Alert.alert('エラー', result.error || 'スワイプの保存に失敗しました');
       }
     } catch (error) {
@@ -63,6 +91,15 @@ const DiscoverScreen: React.FC = () => {
         { text: '更新', onPress: loadUsers },
       ]
     );
+  };
+
+  const handleSendMessage = () => {
+    setShowMatchModal(false);
+    Alert.alert('メッセージ機能', 'メッセージ機能は今後実装予定です');
+  };
+
+  const handleContinueSwiping = () => {
+    setShowMatchModal(false);
   };
 
   if (loading) {
@@ -174,6 +211,17 @@ const DiscoverScreen: React.FC = () => {
           左にスワイプ: パス　｜　右にスワイプ: いいね
         </Text>
       </View>
+
+      {/* Match Modal */}
+      {showMatchModal && matchedUser && currentUserData && (
+        <MatchModal
+          visible={showMatchModal}
+          currentUser={currentUserData}
+          matchedUser={matchedUser}
+          onSendMessage={handleSendMessage}
+          onContinueSwiping={handleContinueSwiping}
+        />
+      )}
     </View>
   );
 };
