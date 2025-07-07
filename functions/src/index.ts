@@ -22,7 +22,7 @@ export const onMatchCreated = functions.firestore
       const user2Data = user2Doc.data();
 
       if (!user1Data || !user2Data) {
-        console.error("User data not found for match:", context.params.matchId);
+        functions.logger.error("User data not found for match:", context.params.matchId);
         return;
       }
 
@@ -90,9 +90,9 @@ export const onMatchCreated = functions.firestore
       }
 
       await Promise.all(notifications);
-      console.log(`Match notifications sent for match: ${context.params.matchId}`);
+      functions.logger.info(`Match notifications sent for match: ${context.params.matchId}`);
     } catch (error) {
-      console.error("Error sending match notifications:", error);
+      functions.logger.error("Error sending match notifications:", error);
     }
   });
 
@@ -108,7 +108,7 @@ export const onMessageCreated = functions.firestore
       const matchData = matchDoc.data();
 
       if (!matchData) {
-        console.error("Match data not found:", matchId);
+        functions.logger.error("Match data not found:", matchId);
         return;
       }
 
@@ -116,7 +116,7 @@ export const onMessageCreated = functions.firestore
       const recipientId = userIds.find((id: string) => id !== senderId);
 
       if (!recipientId) {
-        console.error("Recipient not found for message:", context.params.messageId);
+        functions.logger.error("Recipient not found for message:", context.params.messageId);
         return;
       }
 
@@ -129,12 +129,12 @@ export const onMessageCreated = functions.firestore
       const senderData = senderDoc.data();
 
       if (!recipientData || !senderData) {
-        console.error("User data not found for message notification");
+        functions.logger.error("User data not found for message notification");
         return;
       }
 
       if (!recipientData.fcmToken) {
-        console.log("Recipient has no FCM token, skipping notification");
+        functions.logger.info("Recipient has no FCM token, skipping notification");
         return;
       }
 
@@ -174,8 +174,8 @@ export const onMessageCreated = functions.firestore
         },
       });
 
-      console.log(`Message notification sent to ${recipientId} for message: ${context.params.messageId}`);
+      functions.logger.info(`Message notification sent to ${recipientId} for message: ${context.params.messageId}`);
     } catch (error) {
-      console.error("Error sending message notification:", error);
+      functions.logger.error("Error sending message notification:", error);
     }
   });

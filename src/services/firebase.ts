@@ -200,6 +200,7 @@ export const saveSwipeAction = async (swipedOnUid: string, action: 'like' | 'pas
     
     let isMatch = false;
     let matchId = null;
+    
     if (action === 'like') {
       const mutualLikeQuery = query(
         collection(firestore, COLLECTIONS.SWIPES),
@@ -512,7 +513,6 @@ export const setupTokenRefreshListener = (): (() => void) => {
   const unsubscribe = messaging().onTokenRefresh(async (token) => {
     try {
       await saveFCMToken(token);
-      console.log('FCM token refreshed and saved:', token);
     } catch (error) {
       console.error('Error saving refreshed FCM token:', error);
     }
@@ -522,12 +522,10 @@ export const setupTokenRefreshListener = (): (() => void) => {
 };
 
 export const setupNotificationListeners = () => {
-  const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
-    console.log('Foreground notification received:', remoteMessage);
+  const unsubscribeForeground = messaging().onMessage(async (_remoteMessage) => {
   });
 
   messaging().onNotificationOpenedApp((remoteMessage) => {
-    console.log('Notification opened app from background:', remoteMessage);
     if (remoteMessage.data) {
       handleNotificationNavigation(remoteMessage.data);
     }
@@ -537,7 +535,6 @@ export const setupNotificationListeners = () => {
     .getInitialNotification()
     .then((remoteMessage) => {
       if (remoteMessage) {
-        console.log('Notification opened app from quit state:', remoteMessage);
         if (remoteMessage.data) {
           handleNotificationNavigation(remoteMessage.data);
         }
@@ -548,8 +545,6 @@ export const setupNotificationListeners = () => {
 };
 
 const handleNotificationNavigation = (data: { [key: string]: string | object }) => {
-  console.log('Handle notification navigation:', data);
-  
   switch (data.type) {
     case 'match':
       break;

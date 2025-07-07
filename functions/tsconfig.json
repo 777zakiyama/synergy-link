@@ -6,7 +6,10 @@
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017"
+    "target": "es2017",
+    "lib": ["es2017"],
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "compileOnSave": true,
   "include": [
@@ -14,6 +17,7 @@
   ],
   "exclude": [
     "../node_modules",
-    "../src"
+    "../src",
+    "../**/*.d.ts"
   ]
 }
