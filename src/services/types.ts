@@ -25,6 +25,7 @@ export interface User {
   businessCardImageUrl: string;
   profile: UserProfile;
   openInnovation: OpenInnovation;
+  fcmToken?: string; // FCM registration token for push notifications
 }
 
 export type SwipeAction = 'like' | 'pass';

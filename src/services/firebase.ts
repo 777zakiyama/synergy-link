@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, Auth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, FirebaseStorage } from 'firebase/storage';
+import messaging from '@react-native-firebase/messaging';
 import { COLLECTIONS, User, Community } from './types';
 
 export const firebaseConfig = {
@@ -82,6 +83,16 @@ export const loginUser = async (email: string, password: string) => {
     if (userData.status === 'pending_review') {
       return { success: true, uid: user.uid, redirect: 'PendingReview' };
     } else if (userData.status === 'approved') {
+      try {
+        const fcmResult = await requestNotificationPermission();
+        if (fcmResult.success && fcmResult.token) {
+          await saveFCMToken(fcmResult.token);
+          setupTokenRefreshListener();
+        }
+      } catch (fcmError) {
+        console.error('FCM setup failed:', fcmError);
+      }
+      
       if (!userData.profile?.fullName) {
         return { success: true, uid: user.uid, redirect: 'ProfileEdit' };
       } else {
@@ -450,6 +461,102 @@ export const supportCommunity = async (communityId: string) => {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+};
+
+export const requestNotificationPermission = async (): Promise<{ success: boolean; token?: string; error?: string }> => {
+  try {
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+    if (enabled) {
+      const token = await messaging().getToken();
+      return { success: true, token };
+    } else {
+      return { success: false, error: 'Notification permission denied' };
+    }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+export const getFCMToken = async (): Promise<string | null> => {
+  try {
+    const token = await messaging().getToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting FCM token:', error);
+    return null;
+  }
+};
+
+export const saveFCMToken = async (token: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const userRef = doc(firestore, COLLECTIONS.USERS, user.uid);
+    await updateDoc(userRef, { fcmToken: token });
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+export const setupTokenRefreshListener = (): (() => void) => {
+  const unsubscribe = messaging().onTokenRefresh(async (token) => {
+    try {
+      await saveFCMToken(token);
+      console.log('FCM token refreshed and saved:', token);
+    } catch (error) {
+      console.error('Error saving refreshed FCM token:', error);
+    }
+  });
+
+  return unsubscribe;
+};
+
+export const setupNotificationListeners = () => {
+  const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+    console.log('Foreground notification received:', remoteMessage);
+  });
+
+  messaging().onNotificationOpenedApp((remoteMessage) => {
+    console.log('Notification opened app from background:', remoteMessage);
+    if (remoteMessage.data) {
+      handleNotificationNavigation(remoteMessage.data);
+    }
+  });
+
+  messaging()
+    .getInitialNotification()
+    .then((remoteMessage) => {
+      if (remoteMessage) {
+        console.log('Notification opened app from quit state:', remoteMessage);
+        if (remoteMessage.data) {
+          handleNotificationNavigation(remoteMessage.data);
+        }
+      }
+    });
+
+  return unsubscribeForeground;
+};
+
+const handleNotificationNavigation = (data: { [key: string]: string | object }) => {
+  console.log('Handle notification navigation:', data);
+  
+  switch (data.type) {
+    case 'match':
+      break;
+    case 'message':
+      break;
+    default:
+      break;
   }
 };
 
