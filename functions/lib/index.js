@@ -19,7 +19,7 @@ exports.onMatchCreated = functions.firestore
         const user1Data = user1Doc.data();
         const user2Data = user2Doc.data();
         if (!user1Data || !user2Data) {
-            console.error("User data not found for match:", context.params.matchId);
+            functions.logger.error("User data not found for match:", context.params.matchId);
             return;
         }
         const notificationPayload = {
@@ -77,10 +77,10 @@ exports.onMatchCreated = functions.firestore
             }));
         }
         await Promise.all(notifications);
-        console.log(`Match notifications sent for match: ${context.params.matchId}`);
+        functions.logger.info(`Match notifications sent for match: ${context.params.matchId}`);
     }
     catch (error) {
-        console.error("Error sending match notifications:", error);
+        functions.logger.error("Error sending match notifications:", error);
     }
 });
 exports.onMessageCreated = functions.firestore
@@ -94,13 +94,13 @@ exports.onMessageCreated = functions.firestore
         const matchDoc = await db.collection("matches").doc(matchId).get();
         const matchData = matchDoc.data();
         if (!matchData) {
-            console.error("Match data not found:", matchId);
+            functions.logger.error("Match data not found:", matchId);
             return;
         }
         const userIds = matchData.userIds;
         const recipientId = userIds.find((id) => id !== senderId);
         if (!recipientId) {
-            console.error("Recipient not found for message:", context.params.messageId);
+            functions.logger.error("Recipient not found for message:", context.params.messageId);
             return;
         }
         const [recipientDoc, senderDoc] = await Promise.all([
@@ -110,11 +110,11 @@ exports.onMessageCreated = functions.firestore
         const recipientData = recipientDoc.data();
         const senderData = senderDoc.data();
         if (!recipientData || !senderData) {
-            console.error("User data not found for message notification");
+            functions.logger.error("User data not found for message notification");
             return;
         }
         if (!recipientData.fcmToken) {
-            console.log("Recipient has no FCM token, skipping notification");
+            functions.logger.info("Recipient has no FCM token, skipping notification");
             return;
         }
         const senderName = ((_a = senderData.profile) === null || _a === void 0 ? void 0 : _a.fullName) || "ユーザー";
@@ -149,10 +149,10 @@ exports.onMessageCreated = functions.firestore
                 },
             },
         });
-        console.log(`Message notification sent to ${recipientId} for message: ${context.params.messageId}`);
+        functions.logger.info(`Message notification sent to ${recipientId} for message: ${context.params.messageId}`);
     }
     catch (error) {
-        console.error("Error sending message notification:", error);
+        functions.logger.error("Error sending message notification:", error);
     }
 });
 //# sourceMappingURL=index.js.map
