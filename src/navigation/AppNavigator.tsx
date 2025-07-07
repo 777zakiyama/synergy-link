@@ -9,8 +9,10 @@ import {
   PendingReviewScreen,
   ProfileEditScreen,
   ProfileCompleteScreen,
+  ChatScreen,
 } from '../screens';
 import TabNavigator from './TabNavigator';
+import { User } from '../services/types';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -21,6 +23,7 @@ export type RootStackParamList = {
   ProfileEdit: undefined;
   ProfileComplete: undefined;
   MainApp: undefined;
+  Chat: { matchId: string; partner: User & { uid: string } };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -98,6 +101,14 @@ const AppNavigator: React.FC = () => {
           options={{
             headerShown: false,
           }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={({ route }) => ({
+            title: route.params?.partner?.profile?.fullName || 'チャット',
+            headerShown: true,
+          })}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -188,6 +188,7 @@ export const saveSwipeAction = async (swipedOnUid: string, action: 'like' | 'pas
     });
     
     let isMatch = false;
+    let matchId = null;
     if (action === 'like') {
       const mutualLikeQuery = query(
         collection(firestore, COLLECTIONS.SWIPES),
@@ -201,17 +202,135 @@ export const saveSwipeAction = async (swipedOnUid: string, action: 'like' | 'pas
       if (!mutualLikeSnapshot.empty) {
         isMatch = true;
         
-        await addDoc(collection(firestore, COLLECTIONS.MATCHES), {
+        const matchDoc = await addDoc(collection(firestore, COLLECTIONS.MATCHES), {
           userIds: [currentUser.uid, swipedOnUid],
           createdAt: serverTimestamp(),
+        });
+        matchId = matchDoc.id;
+      }
+    }
+    
+    return { success: true, isMatch, matchId };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getUserMatches = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { collection, query, where, getDocs, doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    
+    const matchesQuery = query(
+      collection(firestore, COLLECTIONS.MATCHES),
+      where('userIds', 'array-contains', currentUser.uid)
+    );
+    const matchesSnapshot = await getDocs(matchesQuery);
+    
+    const matches = [];
+    for (const matchDoc of matchesSnapshot.docs) {
+      const matchData = matchDoc.data();
+      const partnerUid = matchData.userIds.find((uid: string) => uid !== currentUser.uid);
+      
+      const partnerDocRef = firestoreDoc(firestore, COLLECTIONS.USERS, partnerUid);
+      const partnerDoc = await getDoc(partnerDocRef);
+      
+      if (partnerDoc.exists()) {
+        const partnerData = partnerDoc.data() as User;
+        matches.push({
+          matchId: matchDoc.id,
+          partner: { uid: partnerUid, ...partnerData },
+          createdAt: matchData.createdAt,
         });
       }
     }
     
-    return { success: true, isMatch };
+    return { success: true, matches };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
+};
+
+export const sendMessage = async (matchId: string, messageText: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    const { addDoc, collection, doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    
+    const userDocRef = firestoreDoc(firestore, COLLECTIONS.USERS, currentUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      return { success: false, error: 'ユーザー情報が見つかりません' };
+    }
+    
+    const userData = userDoc.data() as User;
+    
+    const messageData = {
+      text: messageText,
+      createdAt: serverTimestamp(),
+      user: {
+        _id: currentUser.uid,
+        name: userData.profile?.fullName || 'Unknown',
+        avatar: userData.profile?.profileImageUrl,
+      },
+    };
+    
+    const messagesRef = collection(firestore, COLLECTIONS.MATCHES, matchId, COLLECTIONS.MESSAGES);
+    await addDoc(messagesRef, messageData);
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getMessages = async (matchId: string) => {
+  try {
+    const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
+    
+    const messagesQuery = query(
+      collection(firestore, COLLECTIONS.MATCHES, matchId, COLLECTIONS.MESSAGES),
+      orderBy('createdAt', 'desc')
+    );
+    const messagesSnapshot = await getDocs(messagesQuery);
+    
+    const messages = messagesSnapshot.docs.map(docSnapshot => ({
+      _id: docSnapshot.id,
+      ...docSnapshot.data(),
+      createdAt: docSnapshot.data().createdAt?.toDate() || new Date(),
+    }));
+    
+    return { success: true, messages };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const setupMessageListener = (matchId: string, callback: (messages: any[]) => void) => {
+  const { collection, query, orderBy, onSnapshot } = require('firebase/firestore');
+  
+  const messagesQuery = query(
+    collection(firestore, COLLECTIONS.MATCHES, matchId, COLLECTIONS.MESSAGES),
+    orderBy('createdAt', 'desc')
+  );
+  
+  return onSnapshot(messagesQuery, (snapshot: any) => {
+    const messages = snapshot.docs.map((docSnapshot: any) => ({
+      _id: docSnapshot.id,
+      ...docSnapshot.data(),
+      createdAt: docSnapshot.data().createdAt?.toDate() || new Date(),
+    }));
+    
+    callback(messages);
+  });
 };
 
 export default firebaseConfig;

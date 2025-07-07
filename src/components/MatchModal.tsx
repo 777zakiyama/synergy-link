@@ -7,6 +7,7 @@ interface MatchModalProps {
   visible: boolean;
   currentUser: User;
   matchedUser: User;
+  matchId: string;
   onSendMessage: () => void;
   onContinueSwiping: () => void;
 }
@@ -15,6 +16,7 @@ const MatchModal: React.FC<MatchModalProps> = ({
   visible,
   currentUser,
   matchedUser,
+  matchId: _matchId,
   onSendMessage,
   onContinueSwiping,
 }) => {

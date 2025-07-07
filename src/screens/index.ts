@@ -6,3 +6,5 @@ export { default as PendingReviewScreen } from './PendingReviewScreen';
 export { default as ProfileEditScreen } from './ProfileEditScreen';
 export { default as ProfileCompleteScreen } from './ProfileCompleteScreen';
 export { default as DiscoverScreen } from './DiscoverScreen';
+export { default as ChatListScreen } from './ChatListScreen';
+export { default as ChatScreen } from './ChatScreen';
