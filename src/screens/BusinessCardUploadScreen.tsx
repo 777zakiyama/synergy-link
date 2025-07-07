@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, Alert } from 'react-native';
-import { Button, Text, Card } from 'react-native-paper';
+import { View, StyleSheet, Image } from 'react-native';
+import { Button, Text, Card, useTheme } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { launchImageLibrary, launchCamera, ImagePickerResponse, CameraOptions, ImageLibraryOptions } from 'react-native-image-picker';
+import { showErrorAlert, showValidationAlert } from '../utils/errorHandler';
 
 type BusinessCardUploadScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BusinessCardUpload'>;
 
@@ -14,8 +15,11 @@ interface BusinessCardUploadScreenProps {
 
 const BusinessCardUploadScreen: React.FC<BusinessCardUploadScreenProps> = ({ navigation }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const theme = useTheme();
 
   const handleImageSelection = () => {
+    const { Alert } = require('react-native');
     Alert.alert(
       '画像を選択',
       '名刺の画像を選択してください',
@@ -44,6 +48,10 @@ const BusinessCardUploadScreen: React.FC<BusinessCardUploadScreenProps> = ({ nav
     };
 
     launchCamera(options, (response: ImagePickerResponse) => {
+      if (response.errorMessage) {
+        showErrorAlert('エラー', '画像の撮影に失敗しました');
+        return;
+      }
       if (response.assets && response.assets[0]) {
         setSelectedImage(response.assets[0].uri!);
       }
@@ -58,6 +66,10 @@ const BusinessCardUploadScreen: React.FC<BusinessCardUploadScreenProps> = ({ nav
     };
 
     launchImageLibrary(options, (response: ImagePickerResponse) => {
+      if (response.errorMessage) {
+        showErrorAlert('エラー', '画像の選択に失敗しました');
+        return;
+      }
       if (response.assets && response.assets[0]) {
         setSelectedImage(response.assets[0].uri!);
       }
@@ -66,34 +78,108 @@ const BusinessCardUploadScreen: React.FC<BusinessCardUploadScreenProps> = ({ nav
 
   const handleSubmitApplication = async () => {
     if (!selectedImage) {
-      Alert.alert('エラー', '名刺画像を選択してください');
+      showValidationAlert('名刺画像を選択してください');
       return;
     }
 
+    setLoading(true);
     try {
       const { auth, uploadBusinessCard } = await import('../services/firebase');
       
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        Alert.alert('エラー', 'ユーザーが認証されていません');
+        showErrorAlert('エラー', 'ユーザーが認証されていません');
         return;
       }
-
-      console.log('Uploading business card for user:', currentUser.uid);
       
       const result = await uploadBusinessCard(currentUser.uid, selectedImage);
       
       if (result.success) {
-        console.log('Business card uploaded successfully:', result.downloadURL);
         navigation.navigate('PendingReview');
       } else {
-        Alert.alert('エラー', `アップロードに失敗しました: ${result.error}`);
+        showErrorAlert('エラー', `アップロードに失敗しました: ${result.error}`);
       }
     } catch (error) {
-      console.log('Upload error:', error);
-      Alert.alert('エラー', 'アップロード中にエラーが発生しました');
+      showErrorAlert('エラー', 'アップロード中にエラーが発生しました');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      backgroundColor: theme.colors.background,
+    },
+    card: {
+      elevation: 4,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    content: {
+      padding: 24,
+    },
+    title: {
+      fontWeight: 'bold',
+      marginBottom: 16,
+      textAlign: 'center',
+      color: theme.colors.onSurface,
+    },
+    description: {
+      textAlign: 'center',
+      marginBottom: 32,
+      color: theme.colors.onSurfaceVariant,
+      lineHeight: 20,
+    },
+    uploadSection: {
+      marginBottom: 32,
+    },
+    uploadButton: {
+      borderRadius: 8,
+      marginBottom: 24,
+    },
+    uploadButtonContent: {
+      paddingVertical: 8,
+    },
+    previewContainer: {
+      minHeight: 200,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: theme.colors.outline,
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.outlineVariant,
+    },
+    imagePreview: {
+      alignItems: 'center',
+      padding: 16,
+    },
+    previewImage: {
+      width: 250,
+      height: 150,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    previewText: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    placeholderContainer: {
+      alignItems: 'center',
+      padding: 32,
+    },
+    placeholderText: {
+      marginTop: 12,
+      color: theme.colors.onSurfaceDisabled,
+    },
+    submitButton: {
+      borderRadius: 8,
+    },
+    buttonContent: {
+      paddingVertical: 8,
+    },
+  });
 
   return (
     <View style={styles.container}>
@@ -132,7 +218,7 @@ const BusinessCardUploadScreen: React.FC<BusinessCardUploadScreenProps> = ({ nav
                 </View>
               ) : (
                 <View style={styles.placeholderContainer}>
-                  <Icon name="image" size={48} color="#ccc" />
+                  <Icon name="image" size={48} color={theme.colors.onSurfaceVariant} />
                   <Text variant="bodyMedium" style={styles.placeholderText}>
                     画像を選択してください
                   </Text>
@@ -147,86 +233,14 @@ const BusinessCardUploadScreen: React.FC<BusinessCardUploadScreenProps> = ({ nav
             style={styles.submitButton}
             contentStyle={styles.buttonContent}
             disabled={!selectedImage}
+            loading={loading}
           >
-            審査を申請する
+            {loading ? 'アップロード中...' : '審査を申請する'}
           </Button>
         </Card.Content>
       </Card>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  card: {
-    elevation: 4,
-    borderRadius: 12,
-  },
-  content: {
-    padding: 24,
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  description: {
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-    lineHeight: 20,
-  },
-  uploadSection: {
-    marginBottom: 32,
-  },
-  uploadButton: {
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  uploadButtonContent: {
-    paddingVertical: 8,
-  },
-  previewContainer: {
-    minHeight: 200,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fafafa',
-  },
-  imagePreview: {
-    alignItems: 'center',
-    padding: 16,
-  },
-  previewImage: {
-    width: 250,
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  previewText: {
-    color: '#666',
-  },
-  placeholderContainer: {
-    alignItems: 'center',
-    padding: 32,
-  },
-  placeholderText: {
-    marginTop: 12,
-    color: '#ccc',
-  },
-  submitButton: {
-    borderRadius: 8,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-});
 
 export default BusinessCardUploadScreen;

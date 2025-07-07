@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useTheme } from 'react-native-paper';
 import {
   WelcomeScreen,
   SignUpScreen,
@@ -33,15 +34,16 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
+  const theme = useTheme();
   return (
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName="Welcome"
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#6200ee',
+            backgroundColor: theme.colors.primary,
           },
-          headerTintColor: '#fff',
+          headerTintColor: theme.colors.onPrimary,
           headerTitleStyle: {
             fontWeight: 'bold',
           },

@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useTheme } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { DiscoverScreen, ChatListScreen, CommunityListScreen } from '../screens';
 
@@ -11,7 +12,12 @@ export type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
+const TabBarIcon: React.FC<{ iconName: string; color: string; size: number }> = ({ iconName, color, size }) => (
+  <Icon name={iconName} size={size} color={color} />
+);
+
 const TabNavigator: React.FC = () => {
+  const theme = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -34,19 +40,19 @@ const TabNavigator: React.FC = () => {
 
         return {
           tabBarIcon: ({ color, size }) => (
-            <Icon name={iconName} size={size} color={color} />
+            <TabBarIcon iconName={iconName} color={color} size={size} />
           ),
-          tabBarActiveTintColor: '#6200ee',
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
           tabBarStyle: {
-            backgroundColor: 'white',
+            backgroundColor: theme.colors.surface,
             borderTopWidth: 1,
-            borderTopColor: '#e0e0e0',
+            borderTopColor: theme.colors.outline,
           },
           headerStyle: {
-            backgroundColor: '#6200ee',
+            backgroundColor: theme.colors.primary,
           },
-          headerTintColor: '#fff',
+          headerTintColor: theme.colors.onPrimary,
           headerTitleStyle: {
             fontWeight: 'bold',
           },

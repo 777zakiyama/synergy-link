@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Text, ActivityIndicator, Card, Button, FAB, SegmentedButtons } from 'react-native-paper';
+import { Text, ActivityIndicator, Card, Button, FAB, SegmentedButtons, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { getCommunities, supportCommunity, auth } from '../services/firebase';
 import { Community } from '../services/types';
+import { showErrorAlert } from '../utils/errorHandler';
 
 type CommunityListNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -18,6 +19,116 @@ const CommunityListScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('official');
   const navigation = useNavigation<CommunityListNavigationProp>();
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    loadingText: {
+      marginTop: 16,
+      color: theme.colors.onSurfaceVariant,
+    },
+    header: {
+      padding: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outline,
+    },
+    createButton: {
+      borderRadius: 8,
+      marginBottom: 16,
+    },
+    segmentedButtons: {
+      marginBottom: 8,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    emptyTitle: {
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+      color: theme.colors.onSurface,
+    },
+    emptySubtitle: {
+      textAlign: 'center',
+      color: theme.colors.onSurfaceVariant,
+    },
+    listContainer: {
+      padding: 16,
+    },
+    communityCard: {
+      marginBottom: 12,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    communityContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+    },
+    iconContainer: {
+      marginRight: 16,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: theme.colors.outlineVariant,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    communityIcon: {
+      fontSize: 30,
+    },
+    communityInfo: {
+      flex: 1,
+    },
+    communityName: {
+      fontWeight: 'bold',
+      marginBottom: 4,
+      color: theme.colors.onSurface,
+    },
+    communityDescription: {
+      color: theme.colors.onSurfaceVariant,
+      marginBottom: 4,
+    },
+    memberCount: {
+      color: theme.colors.onSurfaceDisabled,
+      fontSize: 12,
+    },
+    proposedInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 4,
+    },
+    supporterCount: {
+      color: theme.colors.onSurfaceDisabled,
+      fontSize: 12,
+      flex: 1,
+    },
+    supportButton: {
+      marginLeft: 8,
+      borderRadius: 16,
+    },
+    fab: {
+      position: 'absolute',
+      margin: 16,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.colors.primary,
+    },
+  });
 
   useEffect(() => {
     loadCommunities();
@@ -31,7 +142,7 @@ const CommunityListScreen: React.FC = () => {
         setCommunities(result.communities || []);
       }
     } catch (error) {
-      console.log('Load communities error:', error);
+      showErrorAlert('エラー', 'コミュニティの読み込みに失敗しました');
     } finally {
       setLoading(false);
     }
@@ -52,7 +163,7 @@ const CommunityListScreen: React.FC = () => {
         loadCommunities(); // Refresh the list
       }
     } catch (error) {
-      console.log('Support community error:', error);
+      showErrorAlert('エラー', 'コミュニティの応援に失敗しました');
     }
   };
 
@@ -179,110 +290,5 @@ const CommunityListScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#666',
-  },
-  header: {
-    padding: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  createButton: {
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  segmentedButtons: {
-    marginBottom: 8,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    textAlign: 'center',
-    color: '#666',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  communityCard: {
-    marginBottom: 12,
-    borderRadius: 12,
-  },
-  communityContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  iconContainer: {
-    marginRight: 16,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  communityIcon: {
-    fontSize: 30,
-  },
-  communityInfo: {
-    flex: 1,
-  },
-  communityName: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  communityDescription: {
-    color: '#666',
-    marginBottom: 4,
-  },
-  memberCount: {
-    color: '#999',
-    fontSize: 12,
-  },
-  proposedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  supporterCount: {
-    color: '#999',
-    fontSize: 12,
-    flex: 1,
-  },
-  supportButton: {
-    marginLeft: 8,
-    borderRadius: 16,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#6200ee',
-  },
-});
 
 export default CommunityListScreen;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, TextInput, Button } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, TextInput, Button, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { createCommunity } from '../services/firebase';
+import { showErrorAlert, showValidationAlert, showSuccessAlert } from '../utils/errorHandler';
 
 const CommunityCreateScreen: React.FC = () => {
   const [name, setName] = useState('');
@@ -10,20 +11,21 @@ const CommunityCreateScreen: React.FC = () => {
   const [icon, setIcon] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
+  const theme = useTheme();
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      Alert.alert('エラー', 'コミュニティ名を入力してください');
+      showValidationAlert('コミュニティ名を入力してください');
       return;
     }
 
     if (!description.trim()) {
-      Alert.alert('エラー', '説明を入力してください');
+      showValidationAlert('説明を入力してください');
       return;
     }
 
     if (!icon.trim()) {
-      Alert.alert('エラー', 'アイコン絵文字を入力してください');
+      showValidationAlert('アイコン絵文字を入力してください');
       return;
     }
 
@@ -31,26 +33,93 @@ const CommunityCreateScreen: React.FC = () => {
     try {
       const result = await createCommunity(name.trim(), description.trim(), icon.trim());
       if (result.success) {
-        Alert.alert(
+        showSuccessAlert(
           '成功',
           'コミュニティが作成されました！',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
+          () => navigation.goBack()
         );
       } else {
-        Alert.alert('エラー', result.error || 'コミュニティの作成に失敗しました');
+        showErrorAlert('エラー', result.error || 'コミュニティの作成に失敗しました');
       }
     } catch (error) {
-      console.log('Create community error:', error);
-      Alert.alert('エラー', 'コミュニティの作成中にエラーが発生しました');
+      showErrorAlert('エラー', 'コミュニティの作成中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    contentContainer: {
+      padding: 16,
+    },
+    header: {
+      marginBottom: 24,
+    },
+    title: {
+      fontWeight: 'bold',
+      marginBottom: 8,
+      color: theme.colors.onSurface,
+    },
+    subtitle: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    form: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 16,
+    },
+    input: {
+      marginBottom: 16,
+    },
+    preview: {
+      marginBottom: 24,
+    },
+    previewLabel: {
+      marginBottom: 8,
+      fontWeight: 'bold',
+      color: theme.colors.onSurface,
+    },
+    previewCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: theme.colors.outlineVariant,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+    },
+    previewIcon: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: theme.colors.outline,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    previewIconText: {
+      fontSize: 24,
+    },
+    previewInfo: {
+      flex: 1,
+    },
+    previewName: {
+      fontWeight: 'bold',
+      marginBottom: 2,
+      color: theme.colors.onSurface,
+    },
+    previewDescription: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    createButton: {
+      borderRadius: 8,
+      paddingVertical: 4,
+    },
+  });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -129,74 +198,5 @@ const CommunityCreateScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: '#666',
-  },
-  form: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  preview: {
-    marginBottom: 24,
-  },
-  previewLabel: {
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  previewCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  previewIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  previewIconText: {
-    fontSize: 24,
-  },
-  previewInfo: {
-    flex: 1,
-  },
-  previewName: {
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  previewDescription: {
-    color: '#666',
-  },
-  createButton: {
-    borderRadius: 8,
-    paddingVertical: 4,
-  },
-});
 
 export default CommunityCreateScreen;

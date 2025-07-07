@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, ActivityIndicator, Card, Avatar, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Button, ActivityIndicator, Card, Avatar, Chip, useTheme } from 'react-native-paper';
+import { showErrorAlert, showConfirmAlert, showSuccessAlert } from '../utils/errorHandler';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { joinCommunity, leaveCommunity, supportCommunity, auth } from '../services/firebase';
 import { Community } from '../services/types';
@@ -15,6 +16,152 @@ const CommunityDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [community, setCommunity] = useState<(Community & { id: string }) | null>(null);
   const route = useRoute<CommunityDetailRouteProp>();
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    contentContainer: {
+      padding: 16,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    loadingText: {
+      marginTop: 16,
+      color: theme.colors.onSurfaceVariant,
+    },
+    headerCard: {
+      marginBottom: 16,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: 20,
+    },
+    iconContainer: {
+      marginRight: 16,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.colors.outlineVariant,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    communityIcon: {
+      fontSize: 40,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    communityName: {
+      fontWeight: 'bold',
+      marginBottom: 8,
+      color: theme.colors.onSurface,
+    },
+    communityDescription: {
+      color: theme.colors.onSurfaceVariant,
+      marginBottom: 12,
+      lineHeight: 20,
+    },
+    statsContainer: {
+      flexDirection: 'row',
+    },
+    memberChip: {
+      backgroundColor: theme.colors.primaryContainer,
+    },
+    supporterChip: {
+      backgroundColor: theme.colors.secondaryContainer,
+      marginRight: 8,
+    },
+    proposedChip: {
+      backgroundColor: theme.colors.errorContainer,
+    },
+    actionCard: {
+      marginBottom: 16,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    actionButton: {
+      borderRadius: 8,
+      paddingVertical: 4,
+    },
+    memberActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    memberStatus: {
+      backgroundColor: theme.colors.primaryContainer,
+    },
+    leaveButton: {
+      borderColor: theme.colors.error,
+    },
+    creatorChip: {
+      backgroundColor: theme.colors.secondaryContainer,
+    },
+    proposedActions: {
+      alignItems: 'center',
+    },
+    creatorSection: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    supporterSection: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    supportSection: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    supportedChip: {
+      backgroundColor: theme.colors.primaryContainer,
+      marginBottom: 8,
+    },
+    promotionText: {
+      textAlign: 'center',
+      color: theme.colors.onSurfaceVariant,
+      fontStyle: 'italic',
+      marginTop: 8,
+    },
+    membersCard: {
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    sectionTitle: {
+      fontWeight: 'bold',
+      marginBottom: 16,
+      color: theme.colors.onSurface,
+    },
+    membersContainer: {
+      gap: 12,
+    },
+    memberItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    memberAvatar: {
+      marginRight: 12,
+      backgroundColor: theme.colors.primary,
+    },
+    memberInfo: {
+      flex: 1,
+    },
+    youLabel: {
+      color: theme.colors.primary,
+      fontStyle: 'italic',
+    },
+  });
 
   useEffect(() => {
     if (route.params?.community) {
@@ -38,13 +185,12 @@ const CommunityDetailScreen: React.FC = () => {
           ...prev,
           memberUids: [...prev.memberUids, currentUser!.uid]
         } : null);
-        Alert.alert('成功', 'コミュニティに参加しました！');
+        showSuccessAlert('成功', 'コミュニティに参加しました！');
       } else {
-        Alert.alert('エラー', result.error || 'コミュニティへの参加に失敗しました');
+        showErrorAlert('エラー', result.error || 'コミュニティへの参加に失敗しました');
       }
     } catch (error) {
-      console.log('Join community error:', error);
-      Alert.alert('エラー', 'コミュニティへの参加中にエラーが発生しました');
+      showErrorAlert('エラー', 'コミュニティへの参加中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
@@ -53,36 +199,28 @@ const CommunityDetailScreen: React.FC = () => {
   const handleLeaveCommunity = async () => {
     if (!community) return;
 
-    Alert.alert(
+    showConfirmAlert(
       '確認',
       'このコミュニティから退会しますか？',
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        {
-          text: '退会',
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const result = await leaveCommunity(community.id);
-              if (result.success) {
-                setCommunity(prev => prev ? {
-                  ...prev,
-                  memberUids: prev.memberUids.filter(uid => uid !== currentUser!.uid)
-                } : null);
-                Alert.alert('成功', 'コミュニティから退会しました');
-              } else {
-                Alert.alert('エラー', result.error || 'コミュニティからの退会に失敗しました');
-              }
-            } catch (error) {
-              console.log('Leave community error:', error);
-              Alert.alert('エラー', 'コミュニティからの退会中にエラーが発生しました');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
+      async () => {
+        setLoading(true);
+        try {
+          const result = await leaveCommunity(community.id);
+          if (result.success) {
+            setCommunity(prev => prev ? {
+              ...prev,
+              memberUids: prev.memberUids.filter(uid => uid !== currentUser!.uid)
+            } : null);
+            showSuccessAlert('成功', 'コミュニティから退会しました');
+          } else {
+            showErrorAlert('エラー', result.error || 'コミュニティからの退会に失敗しました');
+          }
+        } catch (error) {
+          showErrorAlert('エラー', 'コミュニティからの退会中にエラーが発生しました');
+        } finally {
+          setLoading(false);
+        }
+      }
     );
   };
 
@@ -97,13 +235,12 @@ const CommunityDetailScreen: React.FC = () => {
           ...prev,
           supporterUids: [...(prev.supporterUids || []), currentUser!.uid]
         } : null);
-        Alert.alert('成功', 'コミュニティを応援しました！');
+        showSuccessAlert('成功', 'コミュニティを応援しました！');
       } else {
-        Alert.alert('エラー', result.error || 'コミュニティの応援に失敗しました');
+        showErrorAlert('エラー', result.error || 'コミュニティの応援に失敗しました');
       }
     } catch (error) {
-      console.log('Support community error:', error);
-      Alert.alert('エラー', 'コミュニティの応援中にエラーが発生しました');
+      showErrorAlert('エラー', 'コミュニティの応援中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
@@ -219,7 +356,7 @@ const CommunityDetailScreen: React.FC = () => {
                       loading={loading}
                       disabled={loading}
                       style={styles.leaveButton}
-                      textColor="#d32f2f"
+                      textColor={theme.colors.error}
                     >
                       退会する
                     </Button>
@@ -267,145 +404,5 @@ const CommunityDetailScreen: React.FC = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#666',
-  },
-  headerCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 20,
-  },
-  iconContainer: {
-    marginRight: 16,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  communityIcon: {
-    fontSize: 40,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  communityName: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  communityDescription: {
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-  },
-  memberChip: {
-    backgroundColor: '#e3f2fd',
-  },
-  supporterChip: {
-    backgroundColor: '#fff3e0',
-    marginRight: 8,
-  },
-  proposedChip: {
-    backgroundColor: '#ffebee',
-  },
-  actionCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  actionButton: {
-    borderRadius: 8,
-    paddingVertical: 4,
-  },
-  memberActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  memberStatus: {
-    backgroundColor: '#e8f5e8',
-  },
-  leaveButton: {
-    borderColor: '#d32f2f',
-  },
-  creatorChip: {
-    backgroundColor: '#fff3e0',
-  },
-  proposedActions: {
-    alignItems: 'center',
-  },
-  creatorSection: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  supporterSection: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  supportSection: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  supportedChip: {
-    backgroundColor: '#e8f5e8',
-    marginBottom: 8,
-  },
-  promotionText: {
-    textAlign: 'center',
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 8,
-  },
-  membersCard: {
-    borderRadius: 12,
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  membersContainer: {
-    gap: 12,
-  },
-  memberItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  memberAvatar: {
-    marginRight: 12,
-    backgroundColor: '#6200ee',
-  },
-  memberInfo: {
-    flex: 1,
-  },
-  youLabel: {
-    color: '#6200ee',
-    fontStyle: 'italic',
-  },
-});
 
 export default CommunityDetailScreen;

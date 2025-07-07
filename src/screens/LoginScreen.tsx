@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Text, TextInput, Card } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Button, Text, TextInput, Card, useTheme } from 'react-native-paper';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { showErrorAlert, showValidationAlert } from '../utils/errorHandler';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -15,10 +16,51 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    card: {
+      margin: 20,
+      elevation: 4,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    content: {
+      padding: 24,
+    },
+    title: {
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+      color: theme.colors.onSurface,
+    },
+    subtitle: {
+      textAlign: 'center',
+      marginBottom: 32,
+      color: theme.colors.onSurfaceVariant,
+    },
+    inputContainer: {
+      marginBottom: 24,
+      gap: 16,
+    },
+    input: {
+      backgroundColor: theme.colors.surface,
+    },
+    loginButton: {
+      borderRadius: 8,
+    },
+    buttonContent: {
+      paddingVertical: 8,
+    },
+  });
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('エラー', 'メールアドレスとパスワードを入力してください');
+      showValidationAlert('メールアドレスとパスワードを入力してください');
       return;
     }
 
@@ -29,8 +71,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       const result = await loginUser(email, password);
       
       if (result.success) {
-        console.log('Login successful:', result.uid);
-        
         if (result.redirect === 'PendingReview') {
           navigation.navigate('PendingReview');
         } else if (result.redirect === 'ProfileEdit') {
@@ -39,11 +79,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           navigation.navigate('MainApp');
         }
       } else {
-        Alert.alert('ログインエラー', result.error || 'ログインに失敗しました');
+        showErrorAlert('ログインエラー', result.error || 'ログインに失敗しました');
       }
     } catch (error) {
-      console.log('Login error:', error);
-      Alert.alert('エラー', 'ログイン中にエラーが発生しました');
+      showErrorAlert('エラー', 'ログイン中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
@@ -104,42 +143,5 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  card: {
-    margin: 20,
-    elevation: 4,
-    borderRadius: 12,
-  },
-  content: {
-    padding: 24,
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-  },
-  inputContainer: {
-    marginBottom: 24,
-    gap: 16,
-  },
-  input: {
-    backgroundColor: 'white',
-  },
-  loginButton: {
-    borderRadius: 8,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-});
 
 export default LoginScreen;

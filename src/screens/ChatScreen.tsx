@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTheme } from 'react-native-paper';
 import { GiftedChat, IMessage } from 'react-native-gifted-chat';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { sendMessage, setupMessageListener, auth } from '../services/firebase';
 import { User, ChatMessage } from '../services/types';
+import { showErrorAlert } from '../utils/errorHandler';
 
 type ChatScreenRouteProp = RouteProp<{
   Chat: {
@@ -16,6 +18,7 @@ const ChatScreen: React.FC = () => {
   const [messages, setMessages] = useState<IMessage[]>([]);
   const route = useRoute<ChatScreenRouteProp>();
   const { matchId } = route.params;
+  const theme = useTheme();
 
   useEffect(() => {
     const unsubscribe = setupMessageListener(matchId, (firebaseMessages: ChatMessage[]) => {
@@ -46,7 +49,7 @@ const ChatScreen: React.FC = () => {
       try {
         await sendMessage(matchId, message.text);
       } catch (error) {
-        console.log('Send message error:', error);
+        showErrorAlert('エラー', 'メッセージの送信に失敗しました');
       }
     }
   }, [matchId]);
@@ -55,6 +58,13 @@ const ChatScreen: React.FC = () => {
   if (!currentUser) {
     return null;
   }
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+  });
 
   return (
     <View style={styles.container}>
@@ -72,11 +82,5 @@ const ChatScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
 
 export default ChatScreen;

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Text, ActivityIndicator, Avatar, Card } from 'react-native-paper';
+import { Text, ActivityIndicator, Avatar, Card, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { getUserMatches } from '../services/firebase';
 import { User } from '../services/types';
+import { showErrorAlert } from '../utils/errorHandler';
 
 interface MatchItem {
   matchId: string;
@@ -19,6 +20,73 @@ const ChatListScreen: React.FC = () => {
   const [matches, setMatches] = useState<MatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation<ChatListNavigationProp>();
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    loadingText: {
+      marginTop: 16,
+      color: theme.colors.onSurfaceVariant,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+      padding: 32,
+    },
+    emptyTitle: {
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+      color: theme.colors.onSurface,
+    },
+    emptySubtitle: {
+      textAlign: 'center',
+      color: theme.colors.onSurfaceVariant,
+    },
+    listContainer: {
+      padding: 16,
+    },
+    matchCard: {
+      marginBottom: 12,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    matchContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+    },
+    avatar: {
+      marginRight: 16,
+    },
+    matchInfo: {
+      flex: 1,
+    },
+    partnerName: {
+      fontWeight: 'bold',
+      marginBottom: 4,
+      color: theme.colors.onSurface,
+    },
+    partnerCompany: {
+      color: theme.colors.onSurfaceVariant,
+      marginBottom: 4,
+    },
+    matchDate: {
+      color: theme.colors.onSurfaceDisabled,
+      fontSize: 12,
+    },
+  });
 
   useEffect(() => {
     loadMatches();
@@ -32,7 +100,7 @@ const ChatListScreen: React.FC = () => {
         setMatches(result.matches || []);
       }
     } catch (error) {
-      console.log('Load matches error:', error);
+      showErrorAlert('エラー', 'マッチの読み込みに失敗しました');
     } finally {
       setLoading(false);
     }
@@ -113,68 +181,5 @@ const ChatListScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 32,
-  },
-  emptyTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    textAlign: 'center',
-    color: '#666',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  matchCard: {
-    marginBottom: 12,
-    borderRadius: 12,
-  },
-  matchContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  avatar: {
-    marginRight: 16,
-  },
-  matchInfo: {
-    flex: 1,
-  },
-  partnerName: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  partnerCompany: {
-    color: '#666',
-    marginBottom: 4,
-  },
-  matchDate: {
-    color: '#999',
-    fontSize: 12,
-  },
-});
 
 export default ChatListScreen;

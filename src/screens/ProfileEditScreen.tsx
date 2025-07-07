@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
-import { Button, Text, TextInput, Card } from 'react-native-paper';
+import { Button, Text, TextInput, Card, useTheme } from 'react-native-paper';
+import { showErrorAlert, showValidationAlert, showSuccessAlert } from '../utils/errorHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -12,7 +13,8 @@ interface ProfileEditScreenProps {
   navigation: ProfileEditScreenNavigationProp;
 }
 
-const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation }) => {
+const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation: _navigation }) => {
+  const theme = useTheme();
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -74,7 +76,7 @@ const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation }) => 
 
   const handleSaveProfile = async () => {
     if (!fullName || !companyName || !position) {
-      Alert.alert('エラー', '氏名、会社名、役職は必須項目です');
+      showValidationAlert('氏名、会社名、役職は必須項目です');
       return;
     }
 
@@ -95,22 +97,88 @@ const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation }) => 
       const result = await updateUserProfile(profileData, profileImage);
       
       if (result.success) {
-        Alert.alert('成功', 'プロフィールが保存されました', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('MainApp'),
-          },
-        ]);
+        showSuccessAlert('成功', 'プロフィールが保存されました');
       } else {
-        Alert.alert('エラー', `保存に失敗しました: ${result.error}`);
+        showErrorAlert('エラー', `保存に失敗しました: ${result.error}`);
       }
     } catch (error) {
-      console.log('Profile save error:', error);
-      Alert.alert('エラー', 'プロフィール保存中にエラーが発生しました');
+      showErrorAlert('エラー', 'プロフィール保存中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    card: {
+      margin: 20,
+      elevation: 4,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    content: {
+      padding: 24,
+    },
+    title: {
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+      color: theme.colors.onSurface,
+    },
+    subtitle: {
+      textAlign: 'center',
+      marginBottom: 32,
+      color: theme.colors.onSurfaceVariant,
+    },
+    imageSection: {
+      marginBottom: 32,
+    },
+    sectionTitle: {
+      fontWeight: 'bold',
+      marginBottom: 16,
+      color: theme.colors.onSurface,
+    },
+    imageContainer: {
+      alignItems: 'center',
+      gap: 12,
+    },
+    profileImage: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+    },
+    imagePlaceholder: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: theme.colors.outlineVariant,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.outline,
+      borderStyle: 'dashed',
+    },
+    imageButton: {
+      borderRadius: 8,
+    },
+    inputSection: {
+      marginBottom: 32,
+    },
+    input: {
+      backgroundColor: theme.colors.surface,
+      marginBottom: 16,
+    },
+    saveButton: {
+      borderRadius: 8,
+      marginTop: 16,
+    },
+    buttonContent: {
+      paddingVertical: 8,
+    },
+  });
 
   return (
     <ScrollView style={styles.container}>
@@ -246,74 +314,5 @@ const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation }) => 
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  card: {
-    margin: 20,
-    elevation: 4,
-    borderRadius: 12,
-  },
-  content: {
-    padding: 24,
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-  },
-  imageSection: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  imageContainer: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  imagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-    borderStyle: 'dashed',
-  },
-  imageButton: {
-    borderRadius: 8,
-  },
-  inputSection: {
-    marginBottom: 32,
-  },
-  input: {
-    backgroundColor: 'white',
-    marginBottom: 16,
-  },
-  saveButton: {
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-});
 
 export default ProfileEditScreen;
