@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { User, MapPin, Target, Palette, LogOut } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import MindMapView from './MindMapView'
 
 interface UserProfile {
   name: string
@@ -16,6 +17,7 @@ interface NetworkConnection {
 
 export default function VisionMapCreator() {
   const [currentStep, setCurrentStep] = useState(1)
+  const [showMindMap, setShowMindMap] = useState(false)
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     company: '',
@@ -111,11 +113,26 @@ export default function VisionMapCreator() {
 
       const result = await response.json()
       console.log('Vision Map Generated:', result)
-      alert('Vision Map generated successfully! Check console for details.')
+      
+      if (selectedTemplate === 'mindmap') {
+        setShowMindMap(true)
+      } else {
+        alert('Vision Map generated successfully! Check console for details.')
+      }
     } catch (error) {
       console.error('Error generating vision map:', error)
       alert('Error generating vision map. Please try again.')
     }
+  }
+
+  if (showMindMap) {
+    return (
+      <MindMapView 
+        profile={profile}
+        network={network}
+        onBack={() => setShowMindMap(false)}
+      />
+    )
   }
 
   return (
