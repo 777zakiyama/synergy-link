@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from .database import get_db, create_db_and_tables
+from .models import User
 
 load_dotenv()
 
@@ -21,6 +24,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+create_db_and_tables()
+
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     import secrets
@@ -32,7 +37,6 @@ ACCESS_TOKEN_EXPIRE_HOURS = 24
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
-users_db = {}
 skills_db = []
 industries_db = [
     "IT Industry",
@@ -136,34 +140,38 @@ async def get_visions():
     return {"visions": visions_db}
 
 @app.post("/api/register", response_model=Token)
-async def register_user(user: UserRegister):
-    if user.email in users_db:
+async def register_user(user: UserRegister, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
     hashed_password = get_password_hash(user.password)
-    users_db[user.email] = {
-        "hashed_password": hashed_password,
-        "profile": None,
-        "network": [],
-        "created_at": datetime.utcnow().isoformat()
-    }
+    db_user = User(
+        email=user.email,
+        hashed_password=hashed_password,
+        profile=None,
+        network=[]
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
     
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/api/login", response_model=Token)
-async def login_user(user: UserLogin):
-    if user.email not in users_db:
+async def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
     
-    user_data = users_db[user.email]
-    if not verify_password(user.password, user_data["hashed_password"]):
+    if not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
@@ -173,49 +181,56 @@ async def login_user(user: UserLogin):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/api/profile")
-async def create_user_profile(profile: UserProfile, current_user: str = Depends(verify_token)):
-    if current_user not in users_db:
+async def create_user_profile(profile: UserProfile, current_user: str = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == current_user).first()
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    users_db[current_user]["profile"] = profile.dict()
+    db_user.profile = profile.dict()
+    db.commit()
     return {"message": "Profile created successfully", "user_email": current_user}
 
 @app.get("/api/profile")
-async def get_user_profile(current_user: str = Depends(verify_token)):
-    if current_user not in users_db:
+async def get_user_profile(current_user: str = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == current_user).first()
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    profile = users_db[current_user]["profile"]
-    if profile is None:
+    if db_user.profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     
-    return profile
+    return db_user.profile
 
 @app.post("/api/network")
-async def add_network_connection(connection: NetworkConnection, current_user: str = Depends(verify_token)):
-    if current_user not in users_db:
+async def add_network_connection(connection: NetworkConnection, current_user: str = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == current_user).first()
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    users_db[current_user]["network"].append(connection.dict())
+    if db_user.network is None:
+        db_user.network = []
+    db_user.network.append(connection.dict())
+    db.commit()
     return {"message": "Network connection added successfully"}
 
 @app.get("/api/network")
-async def get_user_network(current_user: str = Depends(verify_token)):
-    if current_user not in users_db:
+async def get_user_network(current_user: str = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == current_user).first()
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return {"network": users_db[current_user]["network"]}
+    return {"network": db_user.network or []}
 
 @app.post("/api/vision-map")
-async def generate_vision_map(template: str, current_user: str = Depends(verify_token)):
-    if current_user not in users_db:
+async def generate_vision_map(template: str, current_user: str = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == current_user).first()
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user_data = users_db[current_user]
     vision_map = {
         "user_email": current_user,
-        "profile": user_data["profile"],
-        "network": user_data["network"],
+        "profile": db_user.profile,
+        "network": db_user.network or [],
         "template": template,
         "generated_at": datetime.utcnow().isoformat()
     }
